@@ -1,3 +1,3 @@
-# LJS ELEC TERTIAIRE
+# LJS Élec Tertiaire
 
-Application LJS ELEC TERTIAIRE, reliée au Supabase central LJS avec ses propres tables.
+Application LJS Élec Tertiaire synchronisée sur les fonctionnalités de LJS Feuilles d'heures.

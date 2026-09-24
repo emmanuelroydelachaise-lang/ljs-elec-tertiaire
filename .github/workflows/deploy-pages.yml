@@ -1,4 +1,4 @@
-name: Deploy LJS ELEC TERTIAIRE to GitHub Pages
+name: Deploy LJS to GitHub Pages
 
 on:
   push:
@@ -20,80 +20,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout app overlay
+      - name: Checkout
         uses: actions/checkout@v6
-        with:
-          path: overlay
-
-      - name: Checkout CVC Tertiaire application
-        uses: actions/checkout@v6
-        with:
-          repository: emmanuelroydelachaise-lang/ljs-feuilles-heure
-          ref: main
-          path: source
-
-      - name: Build LJS ELEC TERTIAIRE
-        shell: bash
-        run: |
-          rm -rf site
-          mkdir -p site
-          cp -a source/. site/
-          rm -rf site/.git site/.github
-          cp overlay/config.js site/config.js
-          cp overlay/elec-tertiaire-supabase-router.js site/elec-tertiaire-supabase-router.js
-
-          python - <<'PY'
-          from pathlib import Path
-          import json
-
-          index = Path('site/index.html')
-          text = index.read_text(encoding='utf-8')
-          text = text.replace("<title>LJS Energies — Feuilles d'heures</title>", "<title>LJS ELEC TERTIAIRE</title>")
-          text = text.replace('<div class="subtitle">CVC TERTIAIRE</div>', '<div class="subtitle">LJS ELEC TERTIAIRE</div>')
-          marker = '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
-          if 'elec-tertiaire-supabase-router.js' not in text:
-              text = text.replace(marker, marker + '\n  <script src="./elec-tertiaire-supabase-router.js?v=20260920-elec-tertiaire-1"></script>')
-          text = text.replace('config.js?v=20260915-pwa-8', 'config.js?v=20260920-elec-tertiaire-1')
-          text = text.replace('pwa-clean.js?v=20260916-pwa-22', 'pwa-clean.js?v=20260920-elec-tertiaire-1')
-          index.write_text(text, encoding='utf-8')
-
-          manifest_path = Path('site/manifest.webmanifest')
-          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          manifest['id'] = '/ljs-elec-tertiaire/'
-          manifest['name'] = 'LJS ELEC TERTIAIRE'
-          manifest['short_name'] = 'LJS ELEC TERTIAIRE'
-          manifest['description'] = 'LJS ELEC TERTIAIRE - application LJS Energies'
-          manifest['start_url'] = '/ljs-elec-tertiaire/?source=pwa'
-          manifest['scope'] = '/ljs-elec-tertiaire/'
-          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-
-          pwa = Path('site/pwa-clean.js')
-          p = pwa.read_text(encoding='utf-8')
-          p = p.replace("const VERSION = '20260916-pwa-22';", "const VERSION = '20260920-elec-tertiaire-1';")
-          p = p.replace("const CLEAN_KEY = 'ljs_pwa_clean_version';", "const CLEAN_KEY = 'ljs_elec_tertiaire_pwa_clean_version';")
-          p = p.replace(
-              "await Promise.all(registrations.map(registration => registration.unregister()));",
-              "await Promise.all(registrations.filter(registration => registration.scope.includes('/ljs-elec-tertiaire/')).map(registration => registration.unregister()));"
-          )
-          p = p.replace(
-              "await Promise.all(names.filter(name => name.startsWith('ljs-')).map(name => caches.delete(name)));",
-              "await Promise.all(names.filter(name => name.startsWith('ljs-elec-tertiaire-')).map(name => caches.delete(name)));"
-          )
-          pwa.write_text(p, encoding='utf-8')
-
-          sw = Path('site/sw.js')
-          s = sw.read_text(encoding='utf-8')
-          s = s.replace("const CACHE = 'ljs-heures-v65';", "const CACHE = 'ljs-elec-tertiaire-v1';")
-          s = s.replace(
-              "keys.filter(key => key !== CACHE).map(key => caches.delete(key))",
-              "keys.filter(key => key.startsWith('ljs-elec-tertiaire-') && key !== CACHE).map(key => caches.delete(key))"
-          )
-          if "'./elec-tertiaire-supabase-router.js'" not in s:
-              s = s.replace("'./config.js',", "'./config.js', './elec-tertiaire-supabase-router.js',")
-          sw.write_text(s, encoding='utf-8')
-          PY
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -105,21 +34,19 @@ jobs:
           python -m pip install --quiet cairosvg
           python - <<'PY'
           import cairosvg
-          cairosvg.svg2png(url='site/app-icon.svg', write_to='site/apple-touch-icon.png', output_width=180, output_height=180)
-          cairosvg.svg2png(url='site/app-icon.svg', write_to='site/icon-192-v3.png', output_width=192, output_height=192)
-          cairosvg.svg2png(url='site/app-icon.svg', write_to='site/icon-512-v3.png', output_width=512, output_height=512)
-          cairosvg.svg2png(url='site/app-icon-maskable.svg', write_to='site/icon-maskable-512-v3.png', output_width=512, output_height=512)
+          cairosvg.svg2png(url='app-icon.svg', write_to='apple-touch-icon.png', output_width=180, output_height=180)
+          cairosvg.svg2png(url='app-icon.svg', write_to='icon-192-v3.png', output_width=192, output_height=192)
+          cairosvg.svg2png(url='app-icon.svg', write_to='icon-512-v3.png', output_width=512, output_height=512)
+          cairosvg.svg2png(url='app-icon-maskable.svg', write_to='icon-maskable-512-v3.png', output_width=512, output_height=512)
           PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: '.'
 
       - name: Deploy
         id: deployment
